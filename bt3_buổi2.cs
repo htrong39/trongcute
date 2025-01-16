@@ -49,6 +49,7 @@ namespace TRỌNG_CU_TE
 
         public static void Main(string[] args)
         {
+            Console .OutputEncoding = Encoding.UTF8;
             ArrayList diemSo = TaoArrayList(10);
             Console.WriteLine("Danh sách điểm: ");
             foreach (int diem in diemSo)
