@@ -23,7 +23,7 @@ namespace TRỌNG_CU_TE
         public static double TinhTrungBinh(List<int> list) => list.Average();
         public static void Main(string[] args)
         {
-          
+            Console .OutputEncoding = Encoding.UTF8;
             List<int> diemSo = TaoDanhSach(10);
             Console.WriteLine("Danh sách điểm: " + string.Join(", ", diemSo));
             Console.WriteLine("Điểm trung bình: " + TinhTrungBinh(diemSo));
