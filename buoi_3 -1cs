@@ -52,6 +52,34 @@ namespace ConsoleApp1
             return postfix;
         }
 
+        static int EvaluatePostfix(string postfix)
+        {
+            Stack<int> stack = new Stack<int>();
+
+            foreach (char c in postfix)
+            {
+                if (char.IsDigit(c))
+                    stack.Push(c - '0'); // Chuyển ký tự số thành số nguyên
+                else if (IsOperator(c))
+                {
+                    int b = stack.Pop();
+                    int a = stack.Pop();
+                    int result = 0;
+                    switch (c)
+                    {
+                        case '+': result = a + b; break;
+                        case '-': result = a - b; break;
+                        case '*': result = a * b; break;
+                        case '/': result = a / b; break;
+                        case '^': result = (int)Math.Pow(a, b); break;
+                    }
+                    stack.Push(result);
+                }
+            }
+
+            return stack.Pop();
+        }
+
         static void Main()
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -59,6 +87,7 @@ namespace ConsoleApp1
             string infix = Console.ReadLine();
             string postfix = ConvertToPostfix(infix);
             Console.WriteLine("Biểu thức Postfix: " + postfix);
+            Console.WriteLine("Giá trị của biểu thức: " + EvaluatePostfix(postfix));
         }
     }
 
