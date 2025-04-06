@@ -2,28 +2,24 @@ using System;
 using System.IO;
 using System.Windows.Forms;
 
-
 namespace List_am_nhac
 {
-   
     public partial class Form1 : Form
-    {
-        // Các biến toàn cục với mô tả
+    { // Các biến toàn cục với mô tả
         private DoublyLinkedList songList = new DoublyLinkedList();      // Danh sách tất cả bài hát
         private DoublyLinkedList songHistory = new DoublyLinkedList();   // Lưu lịch sử phát nhạc
         private DoublyLinkedList favoriteSongs = new DoublyLinkedList(); // Danh sách bài hát yêu thích
-        private Node currentSong;                                        // Bài hát đang phát
-        private bool isLooping = false;                                  // Trạng thái lặp danh sách
-        private int currentIndex = 0;                                    // Vị trí bài hát hiện tại
-        private Form suggestionForm;                                     // Form hiển thị gợi ý bài hát
-        private ListBox listBoxSuggestions;                             // ListBox chứa danh sách gợi ý                          
+        private Node currentSong;    // Bài hát đang phát
+        private int currentIndex = 0;    // Vị trí bài hát hiện tại
+        private Form suggestionForm; // Form hiển thị gợi ý bài hát
+        private ListBox listBoxSuggestions;  // ListBox chứa danh sách gợi ý                     
 
-        // Khởi tạo form
+
         public Form1()
         {
             InitializeComponent();
-            InitializeEventHandlers();
 
+            InitializeEventHandlers();
         }
         // Khởi tạo các sự kiện
         private void InitializeEventHandlers()
@@ -31,9 +27,6 @@ namespace List_am_nhac
             axWindowsMediaPlayer1.PlayStateChange += axWindowsMediaPlayer1_PlayStateChange;
             listBox1.SelectedIndexChanged += listBox1_SelectedIndexChanged;
         }
-
-        // --------------------- CÁC LỚP DỮ LIỆU ---------------------
-
         // Lớp Node đại diện cho một nút trong danh sách liên kết đôi
         public class Node
         {
@@ -61,7 +54,8 @@ namespace List_am_nhac
                 Head = null;
                 Tail = null;
                 Count = 0;
-            }// Xóa node có dữ liệu tương ứng với data
+            }
+            // Xóa node có dữ liệu tương ứng với data
             public void Remove(string data)
             {
                 Node nodeToRemove = Find(data);
@@ -256,6 +250,23 @@ namespace List_am_nhac
                 axWindowsMediaPlayer1.URL = currentSong.Data;
                 axWindowsMediaPlayer1.Ctlcontrols.play();
                 listBox1.SelectedIndex = currentIndex;
+
+                // Tạo chuỗi lịch sử: "đường dẫn|thời gian"
+                string historyEntry = $"{currentSong.Data}|{DateTime.Now:HH:mm:ss dd/MM/yyyy}";
+
+                // Kiểm tra bài hát gần nhất trong lịch sử
+                if (songHistory.Head != null)
+                {
+                    string[] lastEntryParts = songHistory.Head.Data.Split('|');
+                    if (lastEntryParts.Length > 0 && lastEntryParts[0] == currentSong.Data)
+                    {
+                        // Nếu bài hát hiện tại trùng với bài hát gần nhất trong lịch sử, không thêm lại
+                        return;
+                    }
+                }
+
+                // Nếu không trùng, thêm vào lịch sử
+                songHistory.AddFirst(historyEntry);// sử dụng DoublyLinkedList để quản lý lịch sử 
             }
         }
 
@@ -282,27 +293,18 @@ namespace List_am_nhac
             int nextIndex = currentIndex + 1;
             if (nextIndex >= songList.Count)
             {
-                if (isLooping)
-                {
-                    nextIndex = 0;
-                }
-                else
-                {
-                    axWindowsMediaPlayer1.Ctlcontrols.stop();
-                    currentSong = null;
-                    currentIndex = -1;
-                    listBox1.SelectedIndex = -1;
-                    return;
-                }
+
+                axWindowsMediaPlayer1.Ctlcontrols.stop();
+                currentSong = null;
+                currentIndex = -1;
+                listBox1.SelectedIndex = -1;
+                return;
             }
 
             currentIndex = nextIndex;
             currentSong = songList.GetNodeAt(nextIndex);
             PlayCurrentSong();
         }
-
-        // --------------------- SỰ KIỆN MEDIA PLAYER ---------------------
-
         private void axWindowsMediaPlayer1_PlayStateChange(object sender, AxWMPLib._WMPOCXEvents_PlayStateChangeEvent e)
         {
             if (e.newState == (int)WMPLib.WMPPlayState.wmppsMediaEnded)
@@ -317,7 +319,7 @@ namespace List_am_nhac
                 }
             }
         }
-        // --------------------- SỰ KIỆN NÚT BẤM ---------------------
+
         private void btnOpenFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
@@ -347,6 +349,7 @@ namespace List_am_nhac
         // Xáo trộn danh sách bài hát
         private void btnShuffle_Click(object sender, EventArgs e)
         {
+
             if (songList.Count > 0)
             {
                 songList.Shuffle();
@@ -355,80 +358,16 @@ namespace List_am_nhac
                 currentIndex = 0;
                 PlayCurrentSong();
             }
+
         }
-        // Thoát chương trình
+
         private void btnExit_Click(object sender, EventArgs e)
         {
             axWindowsMediaPlayer1.close(); // Đóng Windows Media Player trước
             Application.Exit();
         }
 
-        // Phát bài hát trước đó từ lịch sử
-        private void btnPrevious_Click(object sender, EventArgs e)
-        {
-            if (songHistory.Count > 0)
-            {
-                string lastPlayed = songHistory.RemoveFirst();
-                currentSong = songList.Find(lastPlayed);
-                currentIndex = 0;
-                Node temp = songList.Head;
-                while (temp != null && temp.Data != lastPlayed)
-                {
-                    currentIndex++;
-                    temp = temp.Next;
-                }
-                PlayCurrentSong();
-            }
-            else
-            {
-                MessageBox.Show("Không có bài hát trước đó!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-        // Sắp xếp danh sách theo thứ tự alphabet
-        private void btnMergeSort_Click(object sender, EventArgs e)
-        {
-            if (songList.Count > 0)
-            {
-                songList.MergeSort();
-                UpdateListBox();
-                currentSong = songList.Head;
-                currentIndex = 0;
-                PlayCurrentSong();
-            }
-        }
-
-        // --------------------- SỰ KIỆN MEDIA PLAYER ---------------------
-        private void axWindowsMediaPlayer1_Enter(object sender, EventArgs e)
-        {
-            if (isLooping && axWindowsMediaPlayer1.playState == WMPLib.WMPPlayState.wmppsStopped)
-            {
-                PlayCurrentSong();
-            }
-        }
-        // Quay lại bài hát trước
-        private void btnBack_Click(object sender, EventArgs e)
-        {
-            if (songList.Count == 0 || currentSong == null) return;
-
-            if (currentIndex > 0)
-            {
-                currentIndex--;
-                currentSong = songList.GetNodeAt(currentIndex);
-                PlayCurrentSong();
-            }
-            else if (isLooping && songList.Count > 0)
-            {
-                currentIndex = songList.Count - 1;
-                currentSong = songList.GetNodeAt(currentIndex);
-                PlayCurrentSong();
-            }
-            else
-            {
-                MessageBox.Show("Đã ở bài hát đầu tiên!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-        // Tìm kiếm bài hát theo chữ cái đầu
-        private void btnSearch_Click_1(object sender, EventArgs e)
+        private void btnSearch_Click(object sender, EventArgs e)
         {
             Form inputForm = new Form
             {
@@ -457,6 +396,7 @@ namespace List_am_nhac
 
             inputForm.ShowDialog();
         }
+
         // Hiển thị danh sách bài hát gợi ý theo chữ cái
         private void ShowSuggestedSongs(char letter)
         {
@@ -494,6 +434,7 @@ namespace List_am_nhac
             suggestionForm.Controls.Add(listBoxSuggestions);
             suggestionForm.ShowDialog();
         }
+
         // Xử lý khi double click vào bài hát gợi ý
         private void listBoxSuggestions_MouseDoubleClick(object sender, MouseEventArgs e)
         {
@@ -521,6 +462,7 @@ namespace List_am_nhac
                 }
             }
         }
+
         // Thêm bài hát vào danh sách yêu thích
         private void btnAddToFavorites_Click(object sender, EventArgs e)
         {
@@ -537,7 +479,9 @@ namespace List_am_nhac
                     MessageBox.Show("Bài hát đã có trong mục yêu thích!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
+
         }
+
         // Hiển thị danh sách bài hát yêu thích và cho phép xóa từng bài hát
         private void btnShowFavorites_Click(object sender, EventArgs e)
         {
@@ -642,6 +586,7 @@ namespace List_am_nhac
             favoritesForm.Controls.Add(buttonPanel);
             favoritesForm.ShowDialog();
         }
+
         // Xử lý khi chọn bài hát từ ListBox chính
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -651,20 +596,19 @@ namespace List_am_nhac
                 currentIndex = listBox1.SelectedIndex;
                 PlayCurrentSong();
             }
+
         }
-        // Chuyển sang bài hát tiếp theo
+
         private void btnNext_Click(object sender, EventArgs e)
         {
             if (currentSong != null && currentSong.Next != null)
             {
-                songHistory.AddFirst(currentSong.Data);
                 currentSong = currentSong.Next;
                 currentIndex++;
                 PlayCurrentSong();
             }
-            else if (isLooping && songList.Head != null)
+            else if (songList.Head != null)
             {
-                songHistory.AddFirst(currentSong.Data);
                 currentSong = songList.Head;
                 currentIndex = 0;
                 PlayCurrentSong();
@@ -674,6 +618,126 @@ namespace List_am_nhac
                 MessageBox.Show("Không còn bài hát tiếp theo!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
+
+        private void btnBack_Click(object sender, EventArgs e)
+        {
+            if (songList.Count == 0 || currentSong == null) return;
+
+            if (currentIndex > 0)
+            {
+                currentIndex--;
+                currentSong = songList.GetNodeAt(currentIndex);
+                PlayCurrentSong();
+            }
+            else if (songList.Count > 0)
+            {
+                currentIndex = songList.Count - 1;
+                currentSong = songList.GetNodeAt(currentIndex);
+                PlayCurrentSong();
+            }
+            else
+            {
+                MessageBox.Show("Đã ở bài hát đầu tiên!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void btnMergeSort_Click(object sender, EventArgs e)
+        {
+            if (songList.Count > 0)
+            {
+                songList.MergeSort();
+                UpdateListBox();
+                currentSong = songList.Head;
+                currentIndex = 0;
+                PlayCurrentSong();
+            }
+
+        }
+        // Lịch sử các bài hát
+        private void btnShowHistory_Click(object sender, EventArgs e)
+        {
+            if (songHistory.Count == 0)
+            {
+                MessageBox.Show("Chưa có lịch sử phát nhạc!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            Form historyForm = new Form
+            {
+                Text = "Lịch sử phát nhạc",
+                Width = 500,
+                Height = 300
+            };
+
+            DataGridView dataGridView = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                AllowUserToAddRows = false
+            };
+
+            // Tạo các cột
+            dataGridView.Columns.Add("SongName", "Tên bài hát");
+            dataGridView.Columns.Add("PlayTime", "Thời gian phát");
+            DataGridViewButtonColumn deleteColumn = new DataGridViewButtonColumn
+            {
+                Name = "Delete",
+                HeaderText = "Xóa",
+                Text = "Xóa",
+                UseColumnTextForButtonValue = true,
+                Width = 60
+            };
+            dataGridView.Columns.Add(deleteColumn);
+
+            // Thêm dữ liệu vào DataGridView
+            Node current = songHistory.Head;
+            while (current != null)
+            {
+                string[] parts = current.Data.Split('|');
+                if (parts.Length == 2)
+                {
+                    string songPath = parts[0];
+                    string songName = Path.GetFileName(songPath);
+                    string playTime = parts[1];
+                    dataGridView.Rows.Add(songName, playTime, current.Data);
+                }
+                current = current.Next;
+            }
+
+            // Xử lý sự kiện click vào nút "Xóa"
+            dataGridView.CellClick += (s, ev) =>
+            {
+                if (ev.ColumnIndex == dataGridView.Columns["Delete"].Index && ev.RowIndex >= 0)
+                {
+                    string historyEntry = (string)dataGridView.Rows[ev.RowIndex].Cells[2].Value;
+                    string songName = (string)dataGridView.Rows[ev.RowIndex].Cells[0].Value;
+                    songHistory.Remove(historyEntry);
+                    dataGridView.Rows.RemoveAt(ev.RowIndex);
+                    MessageBox.Show($"Đã xóa {songName} khỏi lịch sử!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            };
+
+            // Xử lý double-click để phát lại
+            dataGridView.CellDoubleClick += (s, ev) =>
+            {
+                if (ev.RowIndex >= 0 && ev.ColumnIndex != dataGridView.Columns["Delete"].Index)
+                {
+                    string songPath = ((string)dataGridView.Rows[ev.RowIndex].Cells[2].Value).Split('|')[0];
+                    currentSong = songList.Find(songPath);
+                    currentIndex = 0;
+                    Node tempSong = songList.Head;
+                    while (tempSong != null && tempSong.Data != songPath)
+                    {
+                        currentIndex++;
+                        tempSong = tempSong.Next;
+                    }
+                    PlayCurrentSong();
+                    historyForm.Close();
+                }
+            };
+
+            historyForm.Controls.Add(dataGridView);
+            historyForm.ShowDialog();
+        }
     }
 }
-
